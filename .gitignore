@@ -1,0 +1,17 @@
+# Dependencies (never commit)
+**/node_modules/
+
+# Env & local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Build / cache
+**/.next/
+**/out/
+**/dist/
+**/*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
