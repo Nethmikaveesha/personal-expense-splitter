@@ -161,15 +161,20 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
   const pathname = usePathname();
   const user = api.getStoredUser();
 
-  const links = [
-    { href: "/dashboard", label: "Home" },
-    { href: "/add-expense", label: "Add Expense" },
-    { href: "/profile", label: "Profile" },
-  ];
-
-  if (role === "admin") {
-    links.push({ href: "/admin", label: "Manage Users" });
-  }
+  const links =
+    role === "admin"
+      ? [
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/admin", label: "Manage Users" },
+          { href: "/profile", label: "Profile" },
+        ]
+      : [
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/add-expense", label: "Add Expense" },
+          { href: "/balances", label: "Who owes what" },
+          { href: "/my-expenses", label: "My expenses" },
+          { href: "/profile", label: "Profile" },
+        ];
 
   const logout = () => {
     api.clearSession();
@@ -180,19 +185,24 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
     <aside className="flex w-64 min-h-screen flex-col border-r border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
       <h2 className="mb-6 text-xl font-bold">Menu</h2>
       <nav className="flex flex-1 flex-col gap-2">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              pathname === link.href
-                ? "bg-emerald-600 text-white"
-                : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            }`}
-          >
-            {link.label}
-          </Link>
-        ))}
+        {links.map((link) => {
+          const active =
+            pathname === link.href ||
+            (link.href === "/my-expenses" && pathname.startsWith("/edit-expense"));
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                active
+                  ? "bg-emerald-600 text-white"
+                  : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-zinc-700">

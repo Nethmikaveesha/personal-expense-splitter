@@ -168,19 +168,23 @@ async function listMyExpenses(req, res) {
   }
 }
 
+function uid(v) {
+  return v == null ? "" : String(v);
+}
+
 async function getBalance(req, res) {
   try {
     if (isAdminJwt(req)) {
       return res.json({ entries: [], yourTotalBalance: 0 });
     }
-    const me = req.user.sub;
+    const me = uid(req.user.sub);
     const ex = await pool.query(
       `SELECT e.id, e.amount, e.paid_by_user_id
        FROM expenses e
-       WHERE e.paid_by_user_id = $1
+       WHERE e.paid_by_user_id = $1::uuid
           OR EXISTS (
             SELECT 1 FROM expense_splits es
-            WHERE es.expense_id = e.id AND es.user_id = $1
+            WHERE es.expense_id = e.id AND es.user_id = $1::uuid
           )`,
       [me],
     );
@@ -192,16 +196,17 @@ async function getBalance(req, res) {
         `SELECT user_id, share FROM expense_splits WHERE expense_id = $1`,
         [exp.id],
       );
-      const P = exp.paid_by_user_id;
+      const P = uid(exp.paid_by_user_id);
       const splitList = splits.rows.map((s) => ({
-        userId: s.user_id,
+        userId: uid(s.user_id),
         share: parseFloat(s.share),
       }));
 
       if (P === me) {
         for (const s of splitList) {
           if (s.userId !== me) {
-            netByUser.set(s.userId, (netByUser.get(s.userId) || 0) + s.share);
+            const k = s.userId;
+            netByUser.set(k, (netByUser.get(k) || 0) + s.share);
           }
         }
       } else {
@@ -212,7 +217,7 @@ async function getBalance(req, res) {
       }
     }
 
-    const ids = [...netByUser.keys()].filter((id) => netByUser.get(id) !== 0);
+    const ids = [...netByUser.keys()].filter((id) => Math.abs(netByUser.get(id) || 0) > 1e-9);
     if (ids.length === 0) {
       return res.json({ entries: [], yourTotalBalance: 0 });
     }
@@ -221,12 +226,15 @@ async function getBalance(req, res) {
       `SELECT id, name, email FROM users WHERE id = ANY($1::uuid[])`,
       [ids],
     );
-    const entries = usersRes.rows.map((u) => ({
-      userId: u.id,
-      name: u.name,
-      email: u.email,
-      netBalance: Math.round((netByUser.get(u.id) || 0) * 100) / 100,
-    }));
+    const entries = usersRes.rows.map((u) => {
+      const id = uid(u.id);
+      return {
+        userId: id,
+        name: u.name,
+        email: u.email,
+        netBalance: Math.round((netByUser.get(id) || 0) * 100) / 100,
+      };
+    });
     const yourTotalBalance =
       Math.round(entries.reduce((s, e) => s + e.netBalance, 0) * 100) / 100;
 

@@ -34,7 +34,28 @@ export function Navbar() {
 
   const isAuthed = !!user;
   const logoutInSidebar =
-    pathname === "/dashboard" || pathname === "/admin" || pathname.startsWith("/admin/");
+    pathname === "/dashboard" ||
+    pathname === "/add-expense" ||
+    pathname === "/balances" ||
+    pathname === "/my-expenses" ||
+    pathname === "/profile" ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/edit-expense/");
+
+  /* Dashboard shell (sidebar) — hide the top horizontal nav. */
+  if (
+    pathname === "/dashboard" ||
+    pathname === "/add-expense" ||
+    pathname === "/balances" ||
+    pathname === "/my-expenses" ||
+    pathname === "/profile" ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/edit-expense/")
+  ) {
+    return null;
+  }
 
   // reusable style
   const navLink = (path: string) =>
