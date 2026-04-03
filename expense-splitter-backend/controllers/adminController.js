@@ -85,4 +85,51 @@ async function stats(req, res) {
   }
 }
 
-module.exports = { listUsers, listExpenses, deleteFakeUser, stats };
+async function listUserBalances(req, res) {
+  try {
+    // net = money they are owed - money they owe (same semantics as customer /api/balance)
+    const netByUser = new Map(); // userId -> number
+
+    const rows = await pool.query(
+      `SELECT e.paid_by_user_id AS payer_id, es.user_id, es.share
+       FROM expenses e
+       JOIN expense_splits es ON es.expense_id = e.id`,
+    );
+
+    for (const row of rows.rows) {
+      const payerId = row.payer_id;
+      const userId = row.user_id;
+      const share = parseFloat(row.share);
+
+      netByUser.set(userId, (netByUser.get(userId) || 0) - share);
+      netByUser.set(payerId, (netByUser.get(payerId) || 0) + share);
+    }
+
+    const ids = [...netByUser.keys()].filter((id) => (netByUser.get(id) || 0) !== 0);
+    if (ids.length === 0) {
+      return res.json([]);
+    }
+
+    const usersRes = await pool.query(
+      `SELECT id, name, email FROM users WHERE id = ANY($1::uuid[])`,
+      [ids],
+    );
+
+    const entries = usersRes.rows.map((u) => ({
+      userId: u.id,
+      name: u.name,
+      email: u.email,
+      netBalance: Math.round((netByUser.get(u.id) || 0) * 100) / 100,
+    }));
+
+    // keep response stable: non-zero first, sorted by absolute balance
+    entries.sort((a, b) => Math.abs(b.netBalance) - Math.abs(a.netBalance));
+
+    res.json(entries);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not load user balances." });
+  }
+}
+
+module.exports = { listUsers, listExpenses, deleteFakeUser, stats, listUserBalances };

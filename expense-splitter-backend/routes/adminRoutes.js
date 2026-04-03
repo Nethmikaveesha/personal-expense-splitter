@@ -7,6 +7,7 @@ router.use(requireAuth, requireAdmin);
 
 router.get("/users", admin.listUsers);
 router.get("/expenses", admin.listExpenses);
+router.get("/balances", admin.listUserBalances);
 router.get("/stats", admin.stats);
 router.delete("/users/:id", admin.deleteFakeUser);
 
