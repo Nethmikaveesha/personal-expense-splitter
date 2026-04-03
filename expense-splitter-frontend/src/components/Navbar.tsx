@@ -33,6 +33,29 @@ export function Navbar() {
   };
 
   const isAuthed = !!user;
+  const logoutInSidebar =
+    pathname === "/dashboard" ||
+    pathname === "/add-expense" ||
+    pathname === "/balances" ||
+    pathname === "/my-expenses" ||
+    pathname === "/profile" ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/edit-expense/");
+
+  /* Dashboard shell (sidebar) — hide the top horizontal nav. */
+  if (
+    pathname === "/dashboard" ||
+    pathname === "/add-expense" ||
+    pathname === "/balances" ||
+    pathname === "/my-expenses" ||
+    pathname === "/profile" ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/edit-expense/")
+  ) {
+    return null;
+  }
 
   // reusable style
   const navLink = (path: string) =>
@@ -113,16 +136,19 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <span className="hidden sm:block text-sm text-zinc-500">
-                {user?.name}
-              </span>
+              {!logoutInSidebar && (
+                <>
+                  <span className="hidden sm:block text-sm text-zinc-500">{user?.name}</span>
 
-              <button
-                onClick={logout}
-                className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-              >
-                Log out
-              </button>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  >
+                    Log out
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>

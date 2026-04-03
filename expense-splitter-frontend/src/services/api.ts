@@ -174,6 +174,17 @@ export const api = {
     return request<User[]>("/api/admin/users", { method: "GET" });
   },
 
+  async adminCreateFakeUser(body: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<User> {
+    return request<User>("/api/admin/fake-user", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
   async adminListExpenses(): Promise<Expense[]> {
     return request<Expense[]>("/api/admin/expenses", { method: "GET" });
   },
@@ -190,5 +201,11 @@ export const api = {
 
   async adminListUserBalances(): Promise<BalanceEntry[]> {
     return request<BalanceEntry[]>("/api/admin/balances", { method: "GET" });
+  },
+
+  async adminDeleteExpense(expenseId: string): Promise<void> {
+    await request(`/api/admin/expenses/${encodeURIComponent(expenseId)}`, {
+      method: "DELETE",
+    });
   },
 };

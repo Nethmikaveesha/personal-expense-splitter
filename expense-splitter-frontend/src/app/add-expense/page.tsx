@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { api } from "@/services/api";
 
@@ -20,20 +21,21 @@ export default function AddExpensePage() {
   }, [router]);
 
   return (
-    <div className="mx-auto max-w-lg">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Add expense</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Log what you spent and who shares it.{" "}
-        <Link href="/dashboard" className="text-emerald-600 hover:underline">
-          Back to dashboard
-        </Link>
-      </p>
-      <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-        <ExpenseForm
-          defaultPaidByEmail={email}
-          onSuccess={() => router.push("/dashboard")}
-        />
+    <DashboardLayout title="Add expense">
+      <div className="mx-auto max-w-2xl">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Log what you spent and who shares it.{" "}
+          <Link href="/dashboard" className="font-medium text-emerald-600 hover:underline">
+            Back to overview
+          </Link>
+        </p>
+        <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+          <ExpenseForm
+            defaultPaidByEmail={email}
+            onSuccess={() => router.push("/dashboard")}
+          />
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

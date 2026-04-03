@@ -1,5 +1,8 @@
+const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
 const { ADMIN_ID } = require("./authController");
+
+const ADMIN_USERNAME = (process.env.ADMIN_USERNAME || "admin").toLowerCase();
 
 async function listUsers(req, res) {
   try {
@@ -49,23 +52,95 @@ async function listExpenses(req, res) {
   }
 }
 
-async function deleteFakeUser(req, res) {
+async function createFakeUser(req, res) {
   try {
-    const { id } = req.params;
-    if (id === ADMIN_ID) {
-      return res.status(400).json({ message: "Cannot delete this user." });
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required." });
     }
-    const r = await pool.query(
+    const emailNorm = String(email).trim().toLowerCase();
+    const local = emailNorm.includes("@") ? emailNorm.split("@")[0] : emailNorm;
+    if (local === ADMIN_USERNAME) {
+      return res.status(400).json({ message: "This email is reserved." });
+    }
+    if (emailNorm === "admin@expensemate.local") {
+      return res.status(400).json({ message: "This email is reserved." });
+    }
+
+    const hash = await bcrypt.hash(String(password), 10);
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, name, role, is_fake)
+       VALUES ($1, $2, $3, 'user', true)
+       RETURNING id, email, name, role`,
+      [emailNorm, hash, String(name).trim()],
+    );
+    const row = result.rows[0];
+    res.status(201).json({
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      role: row.role,
+      isFake: true,
+    });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({ message: "Email already registered." });
+    }
+    console.error(err);
+    res.status(500).json({ message: "Could not create fake user." });
+  }
+}
+
+async function deleteFakeUser(req, res) {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ message: "User id is required." });
+  }
+  if (id === ADMIN_ID) {
+    return res.status(400).json({ message: "Cannot delete this user." });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const fakeCheck = await client.query(
+      `SELECT 1 FROM users WHERE id = $1 AND is_fake = true`,
+      [id],
+    );
+    if (fakeCheck.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "User not found or not a fake user." });
+    }
+
+    // Expenses they paid for (splits for those rows are removed via ON DELETE CASCADE on expense_splits.expense_id).
+    await client.query(`DELETE FROM expenses WHERE paid_by_user_id = $1`, [id]);
+
+    // Participation in others’ expenses (RESTRICT on expense_splits.user_id blocks a plain user DELETE).
+    await client.query(`DELETE FROM expense_splits WHERE user_id = $1`, [id]);
+
+    const del = await client.query(
       `DELETE FROM users WHERE id = $1 AND is_fake = true RETURNING id`,
       [id],
     );
-    if (r.rowCount === 0) {
+    if (del.rowCount === 0) {
+      await client.query("ROLLBACK");
       return res.status(404).json({ message: "User not found or not a fake user." });
     }
+
+    await client.query("COMMIT");
     res.status(204).send();
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     console.error(err);
-    res.status(500).json({ message: "Could not delete user." });
+    res.status(500).json({
+      message:
+        err.code === "23503"
+          ? "Cannot delete user: related data could not be removed."
+          : "Could not delete user.",
+    });
+  } finally {
+    client.release();
   }
 }
 
@@ -132,4 +207,29 @@ async function listUserBalances(req, res) {
   }
 }
 
-module.exports = { listUsers, listExpenses, deleteFakeUser, stats, listUserBalances };
+async function deleteExpense(req, res) {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ message: "Expense id is required." });
+    }
+    const r = await pool.query(`DELETE FROM expenses WHERE id = $1 RETURNING id`, [id]);
+    if (r.rowCount === 0) {
+      return res.status(404).json({ message: "Expense not found." });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Could not delete expense." });
+  }
+}
+
+module.exports = {
+  listUsers,
+  listExpenses,
+  createFakeUser,
+  deleteFakeUser,
+  stats,
+  listUserBalances,
+  deleteExpense,
+};

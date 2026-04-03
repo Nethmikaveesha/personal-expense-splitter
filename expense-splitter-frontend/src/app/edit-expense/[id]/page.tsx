@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import DashboardLayout from "@/components/DashboardLayout";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { api } from "@/services/api";
 import type { Expense } from "@/types";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 export default function EditExpensePage() {
   const router = useRouter();
@@ -30,13 +32,13 @@ export default function EditExpensePage() {
       setLoading(true);
       try {
         const list = await api.listMyExpenses();
-        const found = list.find((e) => e.id === id) ?? null;
+        const found = list.find((e) => String(e.id) === String(id)) ?? null;
         if (!found) {
           setError("Expense not found (or not editable).");
           return;
         }
         const currentUserId = api.getStoredUser()?.id ?? null;
-        if (!currentUserId || found.paidByUserId !== currentUserId) {
+        if (!currentUserId || String(found.paidByUserId) !== String(currentUserId)) {
           setError("You can only edit expenses you paid for.");
           return;
         }
@@ -61,51 +63,63 @@ export default function EditExpensePage() {
   }, [expense]);
 
   if (loading) {
-    return <p className="text-center text-zinc-500">Loading…</p>;
+    return (
+      <DashboardLayout title="Edit expense">
+        <p className="text-center text-zinc-500">Loading…</p>
+      </DashboardLayout>
+    );
   }
 
   if (error || !expense) {
     return (
-      <div className="mx-auto max-w-xl">
-        <p className="text-sm text-zinc-500">
-          <button type="button" onClick={() => router.push("/dashboard")} className="font-medium text-emerald-600 hover:underline">
-            ← Back
-          </button>
-        </p>
-        {error && (
-          <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-            {error}
+      <DashboardLayout title="Edit expense">
+        <div className="mx-auto max-w-2xl space-y-4">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <Link href="/my-expenses" className="font-medium text-emerald-600 hover:underline">
+              ← Back to my expenses
+            </Link>
+            {" · "}
+            <Link href="/dashboard" className="font-medium text-emerald-600 hover:underline">
+              Dashboard
+            </Link>
           </p>
-        )}
-      </div>
+          {error && (
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+              {error}
+            </p>
+          )}
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Edit expense</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        <button
-          type="button"
-          onClick={() => router.push("/dashboard")}
-          className="font-medium text-emerald-600 hover:underline"
-        >
-          ← Back to dashboard
-        </button>
-      </p>
+    <DashboardLayout title="Edit expense">
+      <div className="mx-auto max-w-2xl space-y-6">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Update this expense or go back to{" "}
+          <Link href="/my-expenses" className="font-medium text-emerald-600 hover:underline">
+            My expenses
+          </Link>{" "}
+          or the{" "}
+          <Link href="/dashboard" className="font-medium text-emerald-600 hover:underline">
+            dashboard
+          </Link>
+          .
+        </p>
 
-      <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-        <ExpenseForm
-          mode="update"
-          expenseId={expense.id}
-          defaultDescription={expense.description}
-          defaultAmount={expense.amount}
-          defaultPaidByEmail={initialPaidByEmail}
-          defaultParticipantsRaw={initialParticipantsRaw}
-          onSuccess={() => router.push("/dashboard")}
-        />
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+          <ExpenseForm
+            mode="update"
+            expenseId={expense.id}
+            defaultDescription={expense.description}
+            defaultAmount={expense.amount}
+            defaultPaidByEmail={initialPaidByEmail}
+            defaultParticipantsRaw={initialParticipantsRaw}
+            onSuccess={() => router.push("/my-expenses")}
+          />
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
-
