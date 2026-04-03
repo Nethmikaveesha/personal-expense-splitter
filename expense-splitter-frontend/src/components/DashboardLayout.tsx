@@ -36,9 +36,11 @@
 // }
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { api } from "@/services/api";
+import type { User } from "@/types";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -47,15 +49,23 @@ type DashboardLayoutProps = {
 };
 
 export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
-  const user = api.getStoredUser();
-  const role = user?.role ?? "user";
+  const pathname = usePathname();
+  const [storedUser, setStoredUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    setStoredUser(api.getStoredUser());
+  }, []);
+
+  /* localStorage is unavailable during SSR — infer admin shell from URL until session hydrates. */
+  const role =
+    storedUser?.role ?? (pathname.startsWith("/admin") ? "admin" : "user");
 
   const heading =
     title ?? (role === "admin" ? "Admin Dashboard" : "Dashboard");
 
   return (
     <div className="flex min-h-screen bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white">
-      <DashboardSidebar role={role} />
+      <DashboardSidebar role={role} userName={storedUser?.name} />
       <main className="flex-1 p-6 lg:pl-0">
         <header className="mb-6">
           <h1 className="text-3xl font-bold">{heading}</h1>

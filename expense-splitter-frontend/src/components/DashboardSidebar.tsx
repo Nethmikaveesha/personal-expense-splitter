@@ -155,11 +155,14 @@ import { usePathname } from "next/navigation";
 import type { UserRole } from "@/types";
 import { api } from "@/services/api";
 
-type DashboardSidebarProps = { role: UserRole };
+type DashboardSidebarProps = {
+  role: UserRole;
+  /** From session after client mount — omit on server to avoid hydration mismatch. */
+  userName?: string | null;
+};
 
-export function DashboardSidebar({ role }: DashboardSidebarProps) {
+export function DashboardSidebar({ role, userName }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const user = api.getStoredUser();
 
   const links =
     role === "admin"
@@ -206,9 +209,9 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
       </nav>
 
       <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-zinc-700">
-        {user?.name && (
-          <p className="mb-3 truncate px-1 text-sm font-medium text-zinc-800 dark:text-zinc-100">{user.name}</p>
-        )}
+        {userName ? (
+          <p className="mb-3 truncate px-1 text-sm font-medium text-zinc-800 dark:text-zinc-100">{userName}</p>
+        ) : null}
         <button
           type="button"
           onClick={logout}

@@ -6,6 +6,9 @@ type ExpenseListProps = {
   currentUserId?: string | null;
   onEdit?: (expenseId: string) => void;
   onDelete?: (expenseId: string) => void;
+  /** Admin-only: delete any expense regardless of payer. */
+  onAdminDelete?: (expenseId: string) => void;
+  adminDeleteDisabled?: boolean;
 };
 
 function formatMoney(n: number) {
@@ -21,6 +24,8 @@ export function ExpenseList({
   currentUserId,
   onEdit,
   onDelete,
+  onAdminDelete,
+  adminDeleteDisabled,
 }: ExpenseListProps) {
   if (expenses.length === 0) {
     return (
@@ -44,6 +49,9 @@ export function ExpenseList({
                 Paid by {ex.paidByName ?? ex.paidByEmail ?? ex.paidByUserId}
                 {ex.createdAt && ` · ${new Date(ex.createdAt).toLocaleString()}`}
               </p>
+              {onAdminDelete && (
+                <p className="mt-1 font-mono text-[11px] text-zinc-400">Expense ID: {ex.id}</p>
+              )}
             </div>
             <p className="text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
               {formatMoney(ex.amount)}
@@ -70,6 +78,20 @@ export function ExpenseList({
                   Delete
                 </button>
               )}
+            </div>
+          )}
+
+          {onAdminDelete && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-amber-200/80 pt-3 dark:border-amber-900/40">
+              <span className="text-xs font-medium text-amber-800 dark:text-amber-200">Admin</span>
+              <button
+                type="button"
+                disabled={adminDeleteDisabled}
+                onClick={() => onAdminDelete(ex.id)}
+                className="rounded-lg border border-rose-500/80 bg-transparent px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/50"
+              >
+                Delete expense (admin)
+              </button>
             </div>
           )}
 
