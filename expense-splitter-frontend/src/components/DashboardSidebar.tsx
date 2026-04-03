@@ -153,11 +153,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { UserRole } from "@/types";
+import { api } from "@/services/api";
 
 type DashboardSidebarProps = { role: UserRole };
 
 export function DashboardSidebar({ role }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const user = api.getStoredUser();
 
   const links = [
     { href: "/dashboard", label: "Home" },
@@ -166,18 +168,23 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
   ];
 
   if (role === "admin") {
-    links.push({ href: "/admin/users", label: "Manage Users" });
+    links.push({ href: "/admin", label: "Manage Users" });
   }
 
+  const logout = () => {
+    api.clearSession();
+    window.location.href = "/login";
+  };
+
   return (
-    <aside className="w-64 min-h-screen bg-white dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 p-6 flex flex-col">
-      <h2 className="text-xl font-bold mb-6">Menu</h2>
-      <nav className="flex flex-col gap-2">
+    <aside className="flex w-64 min-h-screen flex-col border-r border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
+      <h2 className="mb-6 text-xl font-bold">Menu</h2>
+      <nav className="flex flex-1 flex-col gap-2">
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               pathname === link.href
                 ? "bg-emerald-600 text-white"
                 : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
@@ -187,6 +194,19 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
           </Link>
         ))}
       </nav>
+
+      <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-zinc-700">
+        {user?.name && (
+          <p className="mb-3 truncate px-1 text-sm font-medium text-zinc-800 dark:text-zinc-100">{user.name}</p>
+        )}
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+        >
+          Log out
+        </button>
+      </div>
     </aside>
   );
 }
